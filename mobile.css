@@ -1,0 +1,341 @@
+/* Mobile-friendly layout for Dyżurny Ruchu.
+   Add <link rel="stylesheet" href="mobile.css"> after the existing <style> block in index.html. */
+
+@media (max-width: 700px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    font-size: 15px;
+    overflow-x: hidden;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  button {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  .start {
+    min-height: 100svh;
+    padding: 16px 12px calc(20px + env(safe-area-inset-bottom));
+  }
+
+  .start-header {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .start h1 {
+    font-size: clamp(26px, 8vw, 38px);
+    line-height: 1.05;
+  }
+
+  .date-box {
+    font-size: 11px;
+    min-width: 105px;
+  }
+
+  .date-box strong {
+    font-size: 14px;
+  }
+
+  .start-content {
+    margin: 20px auto 0;
+  }
+
+  .start h2 {
+    margin: 18px 0 10px;
+    font-size: 19px;
+  }
+
+  .mode-grid,
+  .time-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .mode-btn,
+  .time-btn,
+  .custom-btn {
+    min-height: 58px;
+    padding: 9px 7px;
+  }
+
+  .start-button {
+    width: 100%;
+    min-height: 50px;
+    margin: 16px 0 4px;
+  }
+
+  .app {
+    min-height: 100svh;
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 6px 10px;
+    padding: 8px 10px;
+  }
+
+  .brand {
+    font-size: 17px;
+  }
+
+  .station {
+    grid-column: 1;
+    font-size: 12px;
+  }
+
+  .clock {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    font-size: 25px;
+  }
+
+  .top-actions {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 5px;
+    width: 100%;
+  }
+
+  .top-actions .ui-button {
+    min-width: 0;
+    min-height: 42px;
+    padding: 6px 3px;
+    font-size: 12px;
+  }
+
+  .hud {
+    grid-column: 1 / -1;
+    margin: 2px 0 0;
+    justify-content: space-between;
+    font-size: 13px;
+  }
+
+  #score {
+    font-size: 16px;
+  }
+
+  .subbar {
+    align-items: stretch;
+    padding: 7px 9px;
+  }
+
+  .subbar > button {
+    min-height: 42px;
+  }
+
+  .points {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+    gap: 4px;
+  }
+
+  .points span {
+    padding: 5px 7px;
+  }
+
+  .map-area {
+    height: 330px;
+    min-height: 330px;
+    flex: none;
+  }
+
+  .map-title {
+    top: 7px;
+    max-width: calc(100% - 18px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+
+  /* Keep the complete station diagram reachable on narrow screens. */
+  .railmap {
+    width: 900px;
+    max-width: none;
+    height: 270px;
+    margin-top: 55px;
+  }
+
+  .map-area {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .map-weather {
+    position: fixed;
+    inset: auto;
+  }
+
+  .map-help {
+    top: 42px;
+    right: 7px;
+    max-width: 135px;
+    padding: 6px;
+    font-size: 9px;
+  }
+
+  .radio {
+    top: 42px;
+    left: 7px;
+    width: min(185px, 48vw);
+  }
+
+  .radio-head {
+    padding: 5px 7px;
+    font-size: 12px;
+  }
+
+  .radio-body {
+    height: 58px;
+    font-size: 10px;
+  }
+
+  .dashboard {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .panel {
+    min-height: 150px;
+  }
+
+  .panel-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  .train-list {
+    max-height: 220px;
+    min-height: 76px;
+  }
+
+  .table-labels,
+  .train-row {
+    grid-template-columns: 48px minmax(0, 1fr) 63px 30px;
+    gap: 3px;
+  }
+
+  .train-row {
+    min-height: 44px;
+    font-size: 11px;
+  }
+
+  .train-panel {
+    min-height: 0;
+  }
+
+  .train-summary {
+    font-size: 13px;
+  }
+
+  .route {
+    font-size: 11px;
+  }
+
+  .controls {
+    padding: 6px 8px;
+  }
+
+  .control-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .control-row button {
+    min-height: 46px;
+  }
+
+  .small-note {
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .train-art {
+    min-height: 56px;
+    margin: 4px 8px;
+    padding: 7px;
+  }
+
+  .car {
+    min-width: 24px;
+  }
+
+  .message {
+    min-height: 42px;
+    font-size: 13px;
+  }
+
+  .panel-controls {
+    position: sticky;
+    bottom: 0;
+    z-index: 4;
+    background: #0d1b2b;
+    padding: 8px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+
+  .free-tracks {
+    flex: 1 0 100%;
+    font-size: 11px;
+  }
+
+  .panel-controls button {
+    flex: 1 1 145px;
+    min-height: 48px;
+  }
+
+  .tutorial-backdrop {
+    padding: 10px;
+  }
+
+  .tutorial {
+    width: 100%;
+    max-height: 90svh;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 380px) {
+  .top-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .top-actions .ui-button {
+    font-size: 13px;
+  }
+
+  .date-box {
+    min-width: 92px;
+  }
+
+  .railmap {
+    width: 760px;
+    height: 245px;
+  }
+
+  .map-area {
+    height: 305px;
+    min-height: 305px;
+  }
+
+  .panel-controls button {
+    flex-basis: 100%;
+  }
+}
