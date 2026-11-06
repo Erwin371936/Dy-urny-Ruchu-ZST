@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dyżurny Ruchu — Stargard</title>
+<style>
+:root{
+  color-scheme:dark;--bg:#0b141e;--text:#edf4fc;--muted:#9bb0c6;
+  --yellow:#ffb52e;--green:#35cf7b;--red:#fa5a5a;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#080f17;color:var(--text);font:14px Arial,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}
+.hidden{display:none!important}
+
+.start{
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:22px;position:relative;overflow:auto;
+  background:radial-gradient(ellipse at 50% 20%,#193956,#0a1723 65%);
+}
+.start-header{width:min(1000px,100%);display:flex;justify-content:space-between;gap:20px}
+.start h1{font-size:clamp(34px,5vw,58px);margin:8px 0}
+.start-content{width:min(760px,100%);margin:auto;text-align:center}
+.start h2{font-size:22px}
+.date-box{text-align:right;color:var(--muted)}
+.date-box strong{display:block;color:white;font-size:18px}
+.mode-grid,.time-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mode-btn,.time-btn,.custom-btn{
+  border:1px solid #354c62;background:#132638;border-radius:8px;padding:12px
+}
+.mode-btn span,.time-btn small{display:block;margin-top:5px;color:var(--muted);font-size:12px}
+.mode-btn.selected,.time-btn.selected,.custom-btn.selected{border-color:var(--yellow);background:#26364b}
+.custom-row{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin:10px}
+.start-button,.dispatch-button{
+  background:var(--yellow);color:#171717;border:0;border-radius:7px;
+  padding:11px 16px;font-weight:bold
+}
+.start-button{margin:18px}
+.weather-layer{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.weather-particle{position:absolute;top:-25px;animation:fall linear infinite}
+.weather-particle.rain{width:2px;height:20px;background:#8fc7ff}
+.weather-particle.hail{width:7px;height:7px;border-radius:50%;background:#fff}
+.weather-flash{position:absolute;inset:0;background:#fff;opacity:0;animation:flash 6s infinite}
+@keyframes fall{to{transform:translateY(110vh);opacity:.2}}
+@keyframes flash{0%,34%,36%,72%,74%,100%{opacity:0}35%,73%{opacity:.18}}
+
+.app{min-height:100vh;display:flex;flex-direction:column;background:var(--bg)}
+.topbar{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 12px;
+  background:#0d1925;border-bottom:1px solid #293849
+}
+.brand{font-size:20px;font-weight:900}
+.station{color:#8eabc7}
+.clock{font-size:28px;color:var(--yellow);font-weight:bold;font-variant-numeric:tabular-nums}
+.top-actions{display:flex;gap:6px;flex:1;flex-wrap:wrap}
+.ui-button{border:1px solid #34495c;background:#142536;padding:8px 11px;border-radius:6px;font-weight:bold}
+.ui-button.active{background:var(--yellow);color:#171717}
+.ui-button.stop{background:#651d20}
+.ui-button.radio-required{background:#c32028;border-color:#ff7277;animation:pulse .7s infinite alternate}
+@keyframes pulse{to{box-shadow:0 0 15px #ff3333}}
+.hud{margin-left:auto;display:flex;gap:12px;font-weight:bold;white-space:nowrap}
+#score{font-size:20px}
+#passengers{color:var(--green)}
+.subbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 12px;background:#0e1925}
+.subbar button,.control-row button,.tutorial button{
+  border:1px solid #40536a;background:#142638;border-radius:6px;padding:7px 10px
+}
+.points{display:flex;gap:6px;flex-wrap:wrap}
+.points span{padding:5px 8px;border:1px solid #40536a;border-radius:5px;font-weight:bold;font-size:11px}
+
+.map-area{
+  height:43vh;min-height:300px;position:relative;overflow:hidden;
+  background:linear-gradient(#59666d,#313c45)
+}
+.map-area.weather-sun{background:linear-gradient(#65747a,#46545b)}
+.map-area.weather-rain{background:linear-gradient(#34404a,#26333c)}
+.map-area.weather-storm{background:linear-gradient(#25313d,#17222d)}
+.map-area.weather-hail{background:linear-gradient(#46535d,#303d48)}
+.map-title{
+  position:absolute;z-index:3;top:8px;left:50%;transform:translateX(-50%);
+  background:#263541dd;padding:7px 12px;border-radius:5px;white-space:nowrap;font-weight:bold
+}
+.map-weather{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:1}
+.railmap{width:100%;height:100%;position:relative;z-index:2}
+.track{stroke:#b3bdc4;stroke-width:5;fill:none}
+.platform-band{fill:#243747;stroke:#71818d;stroke-width:1}
+.platform-label{fill:white;font:bold 15px Arial;text-anchor:middle}
+.map-label{fill:#e2e9ef;font:bold 12px Arial}
+.track-label{fill:#edf4fc;font:bold 10px Arial;text-anchor:middle}
+.turnout,.signal{cursor:pointer}
+.turnout circle{fill:var(--yellow);stroke:#26333d;stroke-width:3}
+.turnout text{fill:white;font:bold 10px Arial;text-anchor:middle}
+.turnout.selected circle{fill:var(--green)}
+.signal circle{fill:var(--red);stroke:#18212a;stroke-width:3}
+.signal.green circle{fill:var(--green)}
+.signal text{fill:white;font:bold 9px Arial;text-anchor:middle}
+.signal .aspect-label{font-size:8px}
+.train-marker rect{stroke:#101820;stroke-width:2;rx:5}
+.train-marker text{fill:#101820;font:bold 9px Arial;text-anchor:middle}
+.radio{
+  position:absolute;z-index:5;left:10px;top:43px;width:min(300px,38vw);
+  background:#0b1722ed;border:1px solid #415366;border-radius:7px
+}
+.radio-head{padding:8px;background:#142538;font-weight:bold;display:flex;justify-content:space-between}
+.radio-head button{border:0;background:none;color:#b9c9d8}
+.radio-body{height:82px;overflow:auto;padding:7px;font-size:11px;color:#c5d5e4}
+.radio-line{padding:3px;border-bottom:1px solid #ffffff12;overflow-wrap:anywhere}
+.map-help{position:absolute;z-index:5;right:10px;top:43px;background:#0b1722e8;padding:8px;border-radius:5px;font-size:11px;max-width:220px}
+
+.dashboard{flex:1;min-height:320px;display:grid;grid-template-columns:1fr 1fr 1.5fr;gap:8px;padding:8px;background:#09121b}
+.panel{min-width:0;min-height:0;background:#0d1b2b;border:1px solid #293d51;border-radius:7px;overflow:hidden;display:flex;flex-direction:column}
+.panel-head{padding:8px;background:#12336a;display:flex;justify-content:space-between;gap:8px;font-weight:bold}
+.panel-head small{color:#c3d2e1;font-weight:normal}
+.table-labels,.train-row{display:grid;grid-template-columns:48px minmax(0,1fr) 78px 32px;gap:4px;align-items:center}
+.table-labels{padding:5px;color:#88a6cc;font-size:9px}
+.train-list{overflow:auto;flex:1;min-height:80px}
+.train-row{padding:7px 5px;background:#0e2243;border-bottom:1px solid #254061;font-size:11px;cursor:pointer}
+.train-row.selected,.train-row:hover{background:#183765}
+.train-row .destination{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:bold}
+.service{background:#17884e;border-radius:4px;text-align:center;padding:4px 2px;font-size:10px;font-weight:bold;white-space:nowrap}
+.service.ic{background:#315c9e}
+.track-badge{background:#f5f7fb;color:#14263a;text-align:center;border-radius:4px;padding:3px;font-weight:bold}
+.train-panel{border:2px solid var(--yellow)}
+.train-summary{padding:9px;display:flex;justify-content:space-between;gap:8px;font-weight:bold;overflow-wrap:anywhere}
+.route{color:#91abc4;font-size:12px;font-weight:normal;margin-top:4px}
+.controls{padding:7px 10px}
+.control-row{display:flex;gap:6px;flex-wrap:wrap;margin:5px 0}
+.control-row button.selected{border-color:var(--yellow);background:#574821}
+.train-art{margin:4px 10px;background:#103d1d;border-radius:6px;min-height:62px;display:flex;align-items:center;justify-content:center;gap:5px;padding:10px}
+.car{height:33px;min-width:30px;max-width:85px;flex:1;position:relative;border:2px solid #182735;border-radius:5px;background:#eee}
+.car:before{content:"";position:absolute;left:7px;right:7px;top:5px;height:8px;background:#3c7caa;border-radius:2px}
+.car.regio{border-bottom:6px solid #17884e}
+.car.ic{border-bottom:6px solid #315c9e}
+.small-note{font-size:10px;color:var(--muted);padding:4px 10px;overflow-wrap:anywhere}
+.message{padding:7px 10px;min-height:34px;color:#b9c9d8;overflow-wrap:anywhere;line-height:1.35}
+.message.good{color:#65df9a}
+.message.bad{color:#ff8585}
+.panel-controls{margin-top:auto;border-top:1px solid #26394b;padding:8px;display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.panel-controls button{border:0;border-radius:6px;padding:9px 10px;font-weight:bold}
+.exchange-button{background:#2c6ca5}
+.panel-controls .dispatch-button{background:var(--yellow)}
+.free-tracks{margin-right:auto;font-size:10px;color:var(--muted)}
+
+.tutorial-backdrop{position:fixed;inset:0;z-index:20;background:#000b;display:grid;place-items:center;padding:15px}
+.tutorial{width:min(620px,100%);max-height:90vh;overflow:auto;background:#102033;border:1px solid #526b83;border-radius:12px;padding:20px}
+.tutorial h2{color:#ffd16b;margin-top:0}
+.tutorial li{margin:10px 0;line-height:1.45}
+.tutorial button{background:var(--yellow);color:#171717;font-weight:bold}
+
+@media(max-width:900px){
+  .dashboard{grid-template-columns:1fr 1fr}
+  .train-panel{grid-column:1/-1}
+}
+@media(max-width:600px){
+  .dashboard{grid-template-columns:1fr}
+  .train-panel{grid-column:auto}
+  .map-area{height:340px}
+  .radio{width:190px}
+  .mode-grid,.time-grid{grid-template-columns:1fr 1fr}
+  .map-title{font-size:11px}
+  .map-help{max-width:145px;font-size:9px}
+}
+</style>
+</head>
+<body>
+
+<section class="start" id="startScreen">
+  <div class="weather-layer" id="startWeather"></div>
+  <div class="start-header">
+    <h1>Dyżurny Ruchu</h1>
+    <div class="date-box">
+      Aktualna data i godzina
+      <strong id="realDate">--</strong>
+      <strong id="realClock">--:--:--</strong>
+    </div>
+  </div>
+
+  <div class="start-content">
+    <h2>Wybierz pogodę</h2>
+    <div class="mode-grid">
+      <button class="mode-btn selected" data-weather="sun">Słońce<span>Bez opadów</span></button>
+      <button class="mode-btn" data-weather="rain">Deszcz<span>Opady deszczu</span></button>
+      <button class="mode-btn" data-weather="storm">Burza<span>Deszcz i pioruny</span></button>
+      <button class="mode-btn" data-weather="hail">Grad<span>Deszcz z gradem</span></button>
+      <button class="mode-btn" data-weather="custom">Niestandardowa<span>Wybierz pogodę poniżej</span></button>
+    </div>
+
+    <div class="custom-row hidden" id="customWeather">
+      <button class="custom-btn" data-custom="sun">Słońce</button>
+      <button class="custom-btn" data-custom="rain">Deszcz</button>
+      <button class="custom-btn" data-custom="storm">Burza</button>
+      <button class="custom-btn" data-custom="hail">Grad</button>
+    </div>
+
+    <h2>Godzina rozpoczęcia</h2>
+    <div class="time-grid">
+      <button class="time-btn selected" data-start="00:00">00:00<small>Noc</small></button>
+      <button class="time-btn" data-start="04:00">04:00<small>Rano</small></button>
+      <button class="time-btn" data-start="07:00">07:00<small>Poranek</small></button>
+      <button class="time-btn" data-start="10:00">10:00<small>Przedpołudnie</small></button>
+      <button class="time-btn" data-start="14:00">14:00<small>Popołudnie</small></button>
+      <button class="time-btn" data-start="20:00">20:00<small>Wieczór</small></button>
+    </div>
+    <button class="start-button" id="startButton">Rozpocznij dyżur</button>
+  </div>
+</section>
+
+<main class="app hidden" id="gameScreen">
+  <header class="topbar">
+    <div class="brand">Dyżurny Ruchu</div>
+    <div class="station">Stargard</div>
+    <div class="clock" id="gameClock">00:00</div>
+    <div class="top-actions">
+      <button class="ui-button" id="pauseButton">Pauza</button>
+      <button class="ui-button speed active" data-speed="1">1×</button>
+      <button class="ui-button speed" data-speed="2">2×</button>
+      <button class="ui-button speed" data-speed="4">4×</button>
+      <button class="ui-button stop" id="radioStop">RADIO-STOP</button>
+      <button class="ui-button" id="menuButton">Menu</button>
+    </div>
+    <div class="hud">
+      <span>Pasażerowie <span id="passengers">100%</span></span>
+      <span><span id="score">0</span> pkt</span>
+    </div>
+  </header>
+
+  <nav class="subbar">
+    <button id="tutorialButton">Tutorial / Jak grać</button>
+    <div class="points">
+      <span style="color:#72e8a3">Wjazd +5 pkt</span>
+      <span style="color:#86caff">Wymiana pasażerów +10 pkt</span>
+      <span style="color:#ffd16b">Odjazd +100 pkt</span>
+    </div>
+  </nav>
+
+  <section class="map-area weather-sun" id="mapArea">
+    <div class="map-weather" id="gameWeather"></div>
+    <div class="map-title">STACJA STARGARD — SCHEMAT UPROSZCZONY</div>
+
+    <aside class="radio">
+      <div class="radio-head">
+        <span>☎ Telefon / Radio</span>
+        <button id="radioToggle">zwiń</button>
+      </div>
+      <div class="radio-body" id="radioLog"></div>
+    </aside>
+
+    <div class="map-help">
+      TOR 1: wjazd do stacji.<br>
+      TOR 2: odjazd ze stacji.<br>
+      Czerwony S1 = STOP.
+    </div>
+
+    <svg class="railmap" viewBox="0 0 1200 360" preserveAspectRatio="none" aria-label="Kierunkowy schemat torów stacji">
+      <!-- Po lewej: tor wjazdowy 1 i tor wyjazdowy 2 -->
+      <path class="track" d="M0 125 H175"/>
+      <path class="track" d="M0 235 H175"/>
+      <text class="track-label" x="85" y="115">TOR 1 — WJAZD</text>
+      <text class="track-label" x="85" y="255">TOR 2 — ODJAZD</text>
+
+      <!-- Po prawej: tor wjazdowy 1 i tor wyjazdowy 2 -->
+      <path class="track" d="M1025 125 H1200"/>
+      <path class="track" d="M1025 235 H1200"/>
+      <text class="track-label" x="1110" y="115">TOR 1 — WJAZD</text>
+      <text class="track-label" x="1110" y="255">TOR 2 — ODJAZD</text>
+
+      <!-- Tory stacyjne -->
+      <path class="track" d="M245 65 H955"/>
+      <path class="track" d="M245 180 H955"/>
+      <path class="track" d="M245 295 H955"/>
+
+      <!-- Wjazd z lewej strony: wyłącznie z toru dojazdowego 1 -->
+      <path class="track" d="M175 125 L245 65"/>
+      <path class="track" d="M175 125 L245 180"/>
+      <path class="track" d="M175 125 L245 295"/>
+
+      <!-- Odjazd w lewo: z peronów na wyjazdowy tor 2 -->
+      <path class="track" d="M245 65 L175 235"/>
+      <path class="track" d="M245 180 L175 235"/>
+      <path class="track" d="M245 295 L175 235"/>
+
+      <!-- Wjazd z prawej strony: wyłącznie z toru dojazdowego 1 -->
+      <path class="track" d="M1025 125 L955 65"/>
+      <path class="track" d="M1025 125 L955 180"/>
+      <path class="track" d="M1025 125 L955 295"/>
+
+      <!-- Odjazd w prawo: z peronów na wyjazdowy tor 2 -->
+      <path class="track" d="M955 65 L1025 235"/>
+      <path class="track" d="M955 180 L1025 235"/>
+      <path class="track" d="M955 295 L1025 235"/>
+
+      <!-- Perony -->
+      <rect class="platform-band" x="310" y="43" width="580" height="44" rx="4"/>
+      <rect class="platform-band" x="310" y="158" width="580" height="44" rx="4"/>
+      <rect class="platform-band" x="310" y="273" width="580" height="44" rx="4"/>
+      <text class="platform-label" x="600" y="71">TOR / PERON 1</text>
+      <text class="platform-label" x="600" y="186">TOR / PERON 2</text>
+      <text class="platform-label" x="600" y="301">TOR / PERON 3</text>
+
+      <text class="map-label" x="10" y="30">CHOCIWEL / WITKOWO / PIŁA GŁÓWNA</text>
+      <text class="map-label" x="975" y="30">SZCZECIN / GRYFINO</text>
+
+      <!-- Ręczne rozjazdy dla przyjazdów z lewej -->
+      <g class="turnout" data-platform="1" data-side="left" role="button" aria-label="Rozjazd R1 do peronu 1">
+        <circle cx="210" cy="95" r="10"/><text x="210" y="80">R1</text>
+      </g>
+      <g class="turnout" data-platform="2" data-side="left" role="button" aria-label="Rozjazd R2 do peronu 2">
+        <circle cx="210" cy="150" r="10"/><text x="210" y="135">R2</text>
+      </g>
+      <g class="turnout" data-platform="3" data-side="left" role="button" aria-label="Rozjazd R3 do peronu 3">
+        <circle cx="210" cy="260" r="10"/><text x="210" y="245">R3</text>
+      </g>
+
+      <!-- Ręczne rozjazdy dla przyjazdów z prawej -->
+      <g class="turnout" data-platform="1" data-side="right" role="button" aria-label="Rozjazd R4 do peronu 1">
+        <circle cx="990" cy="95" r="10"/><text x="990" y="80">R4</text>
+      </g>
+      <g class="turnout" data-platform="2" data-side="right" role="button" aria-label="Rozjazd R5 do peronu 2">
+        <circle cx="990" cy="150" r="10"/><text x="990" y="135">R5</text>
+      </g>
+      <g class="turnout" data-platform="3" data-side="right" role="button" aria-label="Rozjazd R6 do peronu 3">
+        <circle cx="990" cy="260" r="10"/><text x="990" y="245">R6</text>
+      </g>
+
+      <!-- Semafory. Czerwone S1 oznacza STOP; kliknięcie zmienia aspekt na zielony. -->
+      <g class="signal" data-platform="1" data-side="left" data-aspect="red" transform="translate(270 65)">
+        <circle r="9"/><text y="21">S1L</text><text class="aspect-label" y="31">S1</text>
+      </g>
+      <g class="signal" data-platform="1" data-side="right" data-aspect="red" transform="translate(930 65)">
+        <circle r="9"/><text y="21">S1P</text><text class="aspect-label" y="31">S1</text>
+      </g>
+      <g class="signal" data-platform="2" data-side="left" data-aspect="red" transform="translate(270 180)">
+        <circle r="9"/><text y="21">S2L</text><text class="aspect-label" y="31">S1</text>
+      </g>
+      <g class="signal" data-platform="2" data-side="right" data-aspect="red" transform="translate(930 180)">
+        <circle r="9"/><text y="21">S2P</text><text class="aspect-label" y="31">S1</text>
+      </g>
+      <g class="signal" data-platform="3" data-side="left" data-aspect="red" transform="translate(270 295)">
+        <circle r="9"/><text y="21">S3L</text><text class="aspect-label" y="31">S1</text>
+      </g>
+      <g class="signal" data-platform="3" data-side="right" data-aspect="red" transform="translate(930 295)">
+        <circle r="9"/><text y="21">S3P</text><text class="aspect-label" y="31">S1</text>
+      </g>
+
+      <g id="trainMarkers"></g>
+    </svg>
+  </section>
+
+  <section class="dashboard">
+    <div class="panel">
+      <div class="panel-head"><span>Odjazdy</span><small>Godzina gry</small></div>
+      <div class="table-labels"><span>GODZ.</span><span>KIERUNEK</span><span>SKŁAD</span><span>TOR</span></div>
+      <div class="train-list" id="departures"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><span>Przyjazdy / kolejka</span><small id="queueLabel">Pociągi oczekujące</small></div>
+      <div class="table-labels"><span>GODZ.</span><span>SKĄD</span><span>SKŁAD</span><span>TOR</span></div>
+      <div class="train-list" id="arrivals"></div>
+    </div>
+
+    <div class="panel train-panel">
+      <div class="panel-head"><span>Skład pociągu</span><small id="gameTimer">05:00</small></div>
+
+      <div class="train-summary">
+        <div>
+          <div id="selectedTrainTitle">Wybierz pociąg z kolejki</div>
+          <div class="route" id="selectedTrainRoute">—</div>
+        </div>
+        <div class="track-badge" id="selectedTrackBadge">?</div>
+      </div>
+
+      <div class="controls">
+        <div class="small-note">1. Wybierz wolny peron dla zaznaczonego pociągu:</div>
+        <div class="control-row" id="platformSelect">
+          <button data-platform="1">Peron 1</button>
+          <button data-platform="2">Peron 2</button>
+          <button data-platform="3">Peron 3</button>
+        </div>
+        <div class="small-note">Możesz też kliknąć rozjazd po stronie, z której nadjeżdża pociąg.</div>
+        <div class="small-note">2. Kliknij semafor: czerwone S1 = STOP, zielone = zezwolenie.</div>
+      </div>
+
+      <div class="small-note">Skład pociągu:</div>
+      <div class="train-art" id="trainArt" aria-label="Rysunek składu pociągu"></div>
+      <div class="message" id="message">Wybierz pociąg z kolejki.</div>
+
+      <div class="panel-controls">
+        <span class="free-tracks" id="platformStatus">Wolne perony: 1, 2, 3</span>
+        <button class="exchange-button" id="exchangeButton">Wymień pasażerów +10</button>
+        <button class="dispatch-button" id="dispatchButton">Wypraw pociąg +100</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="tutorial-backdrop hidden" id="tutorialBackdrop" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle">
+  <section class="tutorial">
+    <h2 id="tutorialTitle">Tutorial — ręczne prowadzenie ruchu</h2>
+    <ol>
+      <li>Wybierz pociąg z tabeli „Przyjazdy / kolejka”. Godziny w tabeli są liczone od godziny gry wybranej w menu.</li>
+      <li>Przydziel mu wolny peron 1, 2 albo 3. Możesz kliknąć przycisk peronu lub rozjazd po stronie pociągu.</li>
+      <li>Pociągi jadące do stacji korzystają z toru dojazdowego 1 po swojej stronie. Kliknij właściwy czerwony semafor S1, aby ręcznie podać zielony sygnał wjazdowy.</li>
+      <li>Po wjeździe pociąg stoi na przydzielonym peronie i otrzymuje +5 pkt. Kliknij „Wymień pasażerów +10”, aby obsłużyć pasażerów.</li>
+      <li>Przed odjazdem kliknij zielony semafor wyjazdowy po stronie kierunku docelowego. Pociąg odjeżdża wtedy torem wyjazdowym 2. Przycisk „Wypraw pociąg +100” rozpoczyna odjazd dopiero po podaniu zielonego sygnału.</li>
+      <li>Zajęty peron nie przyjmie drugiego pociągu. Pociągi czekają w kolejce; po odjeździe skład może zostać skierowany na zwolniony peron.</li>
+      <li>RADIO-STOP używaj tylko podczas wezwania. Alarm dźwiękowy trwa 10 sekund; użycie bez wezwania kosztuje 900 pkt.</li>
+    </ol>
+    <button id="tutorialClose">Rozumiem</button>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = selector => document.querySelector(selector);
+  const $$ = selector => [...document.querySelectorAll(selector)];
+
+  const routes = [
+    {name:"Chociwel / Witkowo / Piła Główna",side:"left"},
+    {name:"Szczecin / Gryfino",side:"right"}
+  ];
+
+  const stockTypes = {
+    REGIO:{count:4,className:"regio"},
+    IC:{count:5,className:"ic"}
+  };
+
+  const schedule = [
+    {origin:"Chociwel / Witkowo / Piła Główna",destination:"Szczecin / Gryfino",service:"REGIO",side:"left"},
+    {origin:"Szczecin / Gryfino",destination:"Chociwel / Witkowo / Piła Główna",service:"IC",side:"right"},
+    {origin:"Chociwel / Witkowo / Piła Główna",destination:"Szczecin / Gryfino",service:"REGIO",side:"left"},
+    {origin:"Szczecin / Gryfino",destination:"Chociwel / Witkowo / Piła Główna",service:"IC",side:"right"},
+    {origin:"Chociwel / Witkowo / Piła Główna",destination:"Szczecin / Gryfino",service:"IC",side:"left"},
+    {origin:"Szczecin / Gryfino",destination:"Chociwel / Witkowo / Piła Główna",service:"REGIO",side:"right"}
+  ];
+
+  let startTime="00:00";
+  let gameMinutes=0;
+  let remaining=300;
+  let speed=1;
+  let score=0;
+  let passengers=100;
+  let trains=[];
+  let waitingTemplates=[];
+  let selectedId=null;
+  let selectedPlatform=null;
+  let nextTrainNumber=1;
+  let paused=false;
+  let spawnClock=0;
+  let timer=null;
+  let customMode=false;
+  let chosenWeather="sun";
+  let radioEventActive=false;
+  let radioEventSeconds=0;
+  let nextRadioEvent=25;
+  let audioContext=null;
+  let alarmOscillator=null;
+  let alarmLfo=null;
+  let alarmTimeout=null;
+
+  function clockText(){
+    const [hours,minutes]=startTime.split(":").map(Number);
+    const total=(hours*60+minutes+gameMinutes)%1440;
+    return String(Math.floor(total/60)).padStart(2,"0")+":"+
+      String(total%60).padStart(2,"0");
+  }
+
+  function clockAfterMinutes(offset){
+    const [hours,minutes]=startTime.split(":").map(Number);
+    const total=(hours*60+minutes+offset)%1440;
+    return String(Math.floor(total/60)).padStart(2,"0")+":"+
+      String(total%60).padStart(2,"0");
+  }
+
+  function updateRealClock(){
+    const now=new Date();
+    $("#realClock").textContent=now.toLocaleTimeString("pl-PL",{hour12:false});
+    $("#realDate").textContent=now.toLocaleDateString("pl-PL",{
+      day:"2-digit",month:"2-digit",year:"numeric"
+    });
+  }
+  updateRealClock();
+  setInterval(updateRealClock,1000);
+
+  function paintWeather(container,kind){
+    container.innerHTML="";
+    if(kind==="rain"||kind==="storm"||kind==="hail"){
+      for(let i=0;i<55;i++){
+        const particle=document.createElement("i");
+        particle.className="weather-particle "+
+          (kind==="hail"&&i%3===0?"hail":"rain");
+        particle.style.left=Math.random()*100+"%";
+        particle.style.animationDelay=Math.random()*2+"s";
+        particle.style.animationDuration=(.6+Math.random()*.8)+"s";
+        container.append(particle);
+      }
+    }
+    if(kind==="storm"){
+      const flash=document.createElement("div");
+      flash.className="weather-flash";
+      container.append(flash);
+    }
+  }
+
+  function applyWeather(){
+    $("#mapArea").classList.remove("weather-sun","weather-rain","weather-storm","weather-hail");
+    $("#mapArea").classList.add("weather-"+chosenWeather);
+    paintWeather($("#gameWeather"),chosenWeather);
+  }
+
+  function say(text,type=""){
+    $("#message").textContent=text;
+    $("#message").className="message "+type;
+  }
+
+  function log(text){
+    const row=document.createElement("div");
+    row.className="radio-line";
+    row.textContent=`${clockText()} — ${text}`;
+    $("#radioLog").prepend(row);
+    while($("#radioLog").children.length>24)$("#radioLog").lastChild.remove();
+  }
+
+  function trainLabel(train){
+    return `${train.service} ${train.number}`;
+  }
+
+  function currentTrain(){
+    return trains.find(train=>train.id===selectedId)||null;
+  }
+
+  function newTrain(template,time=clockText()){
+    const number=nextTrainNumber++;
+    return {
+      ...template,
+      number,
+      id:`train-${number}-${Math.random().toString(16).slice(2)}`,
+      arrivalTime:time,
+      departureTime:"",
+      status:"waiting",
+      assignedPlatform:null,
+      move:0,
+      passengersExchanged:false
+    };
+  }
+
+  function trackOccupied(platform,ignoreId=null){
+    return trains.some(train=>
+      train.id!==ignoreId &&
+      Number(train.assignedPlatform)===Number(platform) &&
+      ["approaching","atPlatform","departing"].includes(train.status)
+    );
+  }
+
+  function makeTrainRow(train,type){
+    const row=document.createElement("div");
+    row.className="train-row"+(train.id===selectedId?" selected":"");
+
+    const time=type==="departure"
+      ?(train.departureTime||clockText())
+      :train.arrivalTime;
+
+    const direction=type==="arrival"
+      ?`${train.origin} → Stargard`
+      :`Stargard → ${train.destination}`;
+
+    row.innerHTML=
+      `<span>${time}</span>
+       <span class="destination" title="${direction}">${direction}</span>
+       <span class="service ${train.service==="IC"?"ic":""}">${trainLabel(train)}</span>
+       <span class="track-badge">${train.assignedPlatform||"—"}</span>`;
+
+    row.addEventListener("click",()=>selectTrain(train.id));
+    return row;
+  }
+
+  function selectTrain(id){
+    const train=trains.find(item=>item.id===id);
+    if(!train)return;
+    selectedId=id;
+    selectedPlatform=train.assignedPlatform;
+    render();
+  }
+
+  function drawLists(){
+    $("#arrivals").innerHTML="";
+    $("#departures").innerHTML="";
+
+    trains.forEach(train=>{
+      $("#arrivals").append(makeTrainRow(train,"arrival"));
+      if(["atPlatform","departing"].includes(train.status)){
+        $("#departures").append(makeTrainRow(train,"departure"));
+      }
+    });
+
+    $("#queueLabel").textContent=waitingTemplates.length
+      ?`Następne w kolejce: ${waitingTemplates.length}`
+      :"Pociągi oczekujące";
+  }
+
+  function drawMap(){
+    const markers=$("#trainMarkers");
+    markers.innerHTML="";
+
+    $$(".signal").forEach(signal=>{
+      signal.classList.toggle("green",signal.dataset.aspect==="green");
+      const aspectText=signal.querySelector(".aspect-label");
+      if(aspectText){
+        aspectText.textContent=signal.dataset.aspect==="green"?"JAZDA":"S1";
+      }
+    });
+
+    $$(".turnout").forEach(turnout=>{
+      const train=currentTrain();
+      turnout.classList.toggle(
+        "selected",
+        !!train &&
+        Number(train.assignedPlatform)===Number(turnout.dataset.platform) &&
+        train.side===turnout.dataset.side
+      );
+    });
+
+    function addMarker(train,x,y){
+      const marker=document.createElementNS("http://www.w3.org/2000/svg","g");
+      marker.setAttribute("class","train-marker");
+      const color=train.service==="IC"?"#dce4ec":"#d8e7e9";
+
+      marker.innerHTML=
+        `<rect x="${x-42}" y="${y-10}" width="84" height="20" fill="${color}"></rect>
+         <text x="${x}" y="${y+4}">${trainLabel(train)}</text>`;
+
+      markers.append(marker);
+    }
+
+    const platformY={1:65,2:180,3:295};
+
+    trains.forEach((train,index)=>{
+      if(train.status==="waiting"){
+        /*
+          Oczekujący pociąg jest ustawiony na właściwym torze wjazdowym 1.
+          Pociąg ze Szczecina/Gryfina po prawej stronie,
+          pociąg z Chociwel/Witkowa/Piły po lewej.
+        */
+        const x=train.side==="left"
+          ?75+(index%4)*82
+          :1125-(index%4)*82;
+        addMarker(train,x,125);
+        return;
+      }
+
+      if(train.status==="approaching"){
+        /*
+          Pociąg z lewej jedzie torem wjazdowym 1 po lewej,
+          pociąg z prawej — torem wjazdowym 1 po prawej.
+        */
+        const x=train.side==="left"?235:965;
+        addMarker(train,x,125);
+        return;
+      }
+
+      if(train.status==="atPlatform"){
+        /*
+          Pociąg stoi na przydzielonym peronie.
+        */
+        const y=platformY[Number(train.assignedPlatform)];
+        addMarker(train,600,y);
+        return;
+      }
+
+      if(train.status==="departing"){
+        /*
+          Pociąg opuszcza peron torem wyjazdowym 2 w kierunku celu.
+          Kierunek lewy: Chociwel/Witkowo/Piła.
+          Kierunek prawy: Szczecin/Gryfino.
+        */
+        const destination=routes.find(route=>route.name===train.destination);
+        const x=destination?.side==="left"?190:1010;
+        addMarker(train,x,235);
+      }
+    });
+
+    const free=[1,2,3].filter(platform=>!trackOccupied(platform));
+    $("#platformStatus").textContent=
+      "Wolne perony: "+(free.length?free.join(", "):"brak");
+  }
+
+  function drawComposition(){
+    const train=currentTrain();
+    const art=$("#trainArt");
+    art.innerHTML="";
+
+    const stock=stockTypes[train?.service||"REGIO"];
+    for(let i=0;i<stock.count;i++){
+      const car=document.createElement("div");
+      car.className="car "+stock.className;
+      art.append(car);
+    }
+
+    $("#selectedTrainTitle").textContent=train
+      ?`${trainLabel(train)} · ${train.origin} → ${train.destination}`
+      :"Wybierz pociąg z kolejki";
+
+    const statusNames={
+      waiting:"oczekuje na przydział peronu",
+      approaching:"wjeżdża torem 1",
+      atPlatform:"stoi przy peronie",
+      departing:"odjeżdża torem 2"
+    };
+
+    $("#selectedTrainRoute").textContent=train
+      ?`${train.origin} → Stargard → ${train.destination} · ${statusNames[train.status]}`
+      :"—";
+
+    $("#selectedTrackBadge").textContent=train
+      ?(train.assignedPlatform||"—")
+      :"?";
+
+    $$("#platformSelect button").forEach(button=>{
+      const platform=Number(button.dataset.platform);
+      button.classList.toggle(
+        "selected",
+        selectedPlatform!==null&&platform===Number(selectedPlatform)
+      );
+      button.disabled=!!train&&train.status==="waiting"&&trackOccupied(platform,train.id);
+    });
+
+    $("#exchangeButton").disabled=
+      !train||train.status!=="atPlatform"||train.passengersExchanged;
+  }
+
+  function render(){
+    drawLists();
+    drawMap();
+    drawComposition();
+
+    $("#gameClock").textContent=clockText();
+    $("#gameTimer").textContent=
+      `${String(Math.floor(remaining/60)).padStart(2,"0")}:`+
+      `${String(remaining%60).padStart(2,"0")}`;
+    $("#score").textContent=score;
+    $("#passengers").textContent=passengers+"%";
+  }
+
+  function assignPlatform(platform,turnoutSide=null){
+    const train=currentTrain();
+
+    if(!train){
+      say("Najpierw wybierz pociąg z kolejki.","bad");
+      return;
+    }
+    if(train.status!=="waiting"){
+      say("Peron można wybrać tylko dla pociągu oczekującego.","bad");
+      return;
+    }
+    if(turnoutSide&&turnoutSide!==train.side){
+      say(`Wybierz rozjazd po stronie, z której nadjeżdża ${trainLabel(train)}.`,"bad");
+      return;
+    }
+    if(trackOccupied(platform,train.id)){
+      say(`Peron ${platform} jest zajęty. ${trainLabel(train)} czeka w kolejce.`,"bad");
+      return;
+    }
+
+    selectedPlatform=Number(platform);
+    train.assignedPlatform=Number(platform);
+    say(`Wybrano peron ${platform} dla ${trainLabel(train)}. Teraz ręcznie ustaw semafor wjazdowy.`,"good");
+    render();
+  }
+
+  function handleSignal(signal){
+    const train=currentTrain();
+
+    if(!train){
+      say("Najpierw wybierz pociąg z kolejki.","bad");
+      return;
+    }
+    if(paused){
+      say("Gra jest wstrzymana.","bad");
+      return;
+    }
+
+    const platform=Number(signal.dataset.platform);
+    const side=signal.dataset.side;
+
+    if(train.status==="waiting"){
+      if(train.assignedPlatform===null){
+        say("Najpierw wybierz wolny peron dla tego pociągu.","bad");
+        return;
+      }
+      if(platform!==Number(train.assignedPlatform)){
+        say(`Pociąg ma przydzielony peron ${train.assignedPlatform}, a semafor dotyczy peronu ${platform}.`,"bad");
+        return;
+      }
+      if(side!==train.side){
+        say(`Pociąg nadjeżdża od strony ${train.origin}. Użyj semafora po tej stronie.`,"bad");
+        return;
+      }
+      if(trackOccupied(platform,train.id)){
+        say(`Peron ${platform} jest zajęty. Pociąg czeka w kolejce.`,"bad");
+        return;
+      }
+
+      signal.dataset.aspect=signal.dataset.aspect==="green"?"red":"green";
+
+      if(signal.dataset.aspect==="green"){
+        train.status="approaching";
+        train.move=3;
+        score+=5;
+        log(`${trainLabel(train)}: zielony sygnał wjazdowy na tor wjazdowy 1. Wjazd +5 pkt.`);
+        say(`Podano zielony sygnał wjazdowy. ${trainLabel(train)} wjeżdża: +5 pkt.`,"good");
+      }else{
+        log(`${trainLabel(train)}: semafor ustawiony na S1 — STOP.`);
+        say("Sygnał S1 — czerwone światło, STOP.","");
+      }
+      render();
+      return;
+    }
+
+    if(train.status==="atPlatform"){
+      const route=routes.find(item=>item.name===train.destination);
+
+      if(!route||platform!==Number(train.assignedPlatform)||side!==route.side){
+        say("To nie jest semafor wyjazdowy po stronie kierunku docelowego tego pociągu.","bad");
+        return;
+      }
+
+      signal.dataset.aspect=signal.dataset.aspect==="green"?"red":"green";
+      log(`${trainLabel(train)}: wyjazdowy semafor ${signal.dataset.aspect==="green"?"zielony":"S1 — STOP"}.`);
+      say(`Semafor wyjazdowy: ${signal.dataset.aspect==="green"?"zielony — tor wyjazdowy 2":"S1 — STOP"}.`,"good");
+      render();
+      return;
+    }
+
+    say("Pociąg jest w ruchu. Poczekaj na zakończenie manewru.","bad");
+  }
+
+  function exchangePassengers(){
+    const train=currentTrain();
+
+    if(!train){
+      say("Najpierw wybierz pociąg.","bad");
+      return;
+    }
+    if(train.status!=="atPlatform"){
+      say("Pociąg musi stać przy peronie, aby wymienić pasażerów.","bad");
+      return;
+    }
+    if(train.passengersExchanged){
+      say("Pasażerowie w tym pociągu zostali już wymienieni.","bad");
+      return;
+    }
+
+    train.passengersExchanged=true;
+    score+=10;
+    passengers=Math.min(100,passengers+1);
+    log(`${trainLabel(train)}: wymiana pasażerów +10 pkt.`);
+    say("Wymiana pasażerów: +10 pkt.","good");
+    render();
+  }
+
+  function dispatchTrain(){
+    const train=currentTrain();
+
+    if(!train){
+      say("Najpierw wybierz pociąg.","bad");
+      return;
+    }
+    if(train.status!=="atPlatform"){
+      say("Pociąg musi stać przy peronie, aby go wyprawić.","bad");
+      return;
+    }
+
+    const route=routes.find(item=>item.name===train.destination);
+    const signal=route
+      ?$(`.signal[data-platform="${train.assignedPlatform}"][data-side="${route.side}"]`)
+      :null;
+
+    if(!signal||signal.dataset.aspect!=="green"){
+      say("Najpierw ręcznie ustaw zielony semafor wyjazdowy po stronie celu.","bad");
+      return;
+    }
+
+    train.status="departing";
+    train.departureTime=clockText();
+    train.move=2;
+
+    log(`${trainLabel(train)} wyprawiony torem wyjazdowym 2 w kierunku ${train.destination}.`);
+    say(`${trainLabel(train)} odjeżdża torem 2. Po zakończeniu: +100 pkt.`,"good");
+    render();
+  }
+
+  function startAlarm(){
+    stopAlarm();
+
+    try{
+      const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+      if(!AudioContextClass)return;
+
+      audioContext=audioContext||new AudioContextClass();
+      if(audioContext.state==="suspended")audioContext.resume();
+
+      alarmOscillator=audioContext.createOscillator();
+      alarmLfo=audioContext.createOscillator();
+      const gain=audioContext.createGain();
+      const lfoGain=audioContext.createGain();
+
+      alarmOscillator.type="sawtooth";
+      alarmOscillator.frequency.value=720;
+      alarmLfo.type="sine";
+      alarmLfo.frequency.value=2.2;
+      lfoGain.gain.value=260;
+      alarmLfo.connect(lfoGain);
+      lfoGain.connect(alarmOscillator.frequency);
+      alarmOscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      gain.gain.value=.06;
+      alarmOscillator.start();
+      alarmLfo.start();
+      alarmTimeout=setTimeout(stopAlarm,10000);
+    }catch(error){
+      console.warn("Alarm dźwiękowy niedostępny.",error);
+    }
+  }
+
+  function stopAlarm(){
+    if(alarmTimeout){
+      clearTimeout(alarmTimeout);
+      alarmTimeout=null;
+    }
+    try{if(alarmOscillator)alarmOscillator.stop()}catch(error){}
+    try{if(alarmLfo)alarmLfo.stop()}catch(error){}
+    alarmOscillator=null;
+    alarmLfo=null;
+  }
+
+  function useRadioStop(){
+    startAlarm();
+
+    if(radioEventActive){
+      radioEventActive=false;
+      $("#radioStop").classList.remove("radio-required");
+      $("#radioStop").textContent="RADIO-STOP";
+      log("Prawidłowy RADIO-STOP. Alarm działa przez 10 sekund.");
+      say("Wezwanie potwierdzone. Alarm potrwa 10 sekund.","good");
+    }else{
+      score-=900;
+      log("Bezpodstawny RADIO-STOP: −900 pkt. Alarm działa przez 10 sekund.");
+      say("Bezpodstawne RADIO-STOP: −900 pkt. Alarm potrwa 10 sekund.","bad");
+      render();
+    }
+  }
+
+  function updateRadioEvent(){
+    if(radioEventActive){
+      radioEventSeconds--;
+      $("#radioStop").textContent=`RADIO-STOP ${radioEventSeconds}`;
+
+      if(radioEventSeconds<=0){
+        radioEventActive=false;
+        $("#radioStop").classList.remove("radio-required");
+        $("#radioStop").textContent="RADIO-STOP";
+        passengers=Math.max(0,passengers-10);
+        log("Nie odpowiedziano na wezwanie RADIO-STOP: pasażerowie −10%.");
+        say("Nie użyto RADIO-STOP podczas wezwania: pasażerowie −10%.","bad");
+      }
+      return;
+    }
+
+    nextRadioEvent--;
+    if(nextRadioEvent<=0){
+      radioEventActive=true;
+      radioEventSeconds=10;
+      $("#radioStop").classList.add("radio-required");
+      $("#radioStop").textContent="RADIO-STOP 10";
+      log("PILNE WEZWANIE: naciśnij RADIO-STOP w ciągu 10 sekund.");
+      say("Pilne wezwanie RADIO-STOP!","bad");
+      nextRadioEvent=35+Math.floor(Math.random()*25);
+    }
+  }
+
+  function promoteNextTrain(){
+    if(waitingTemplates.length===0)return;
+
+    const waitingCount=trains.filter(train=>train.status==="waiting").length;
+    if(waitingCount>=6)return;
+
+    const template=waitingTemplates.shift();
+    const train=newTrain(template,clockText());
+    trains.push(train);
+
+    if(!selectedId)selectedId=train.id;
+    log(`${trainLabel(train)} dołączył do kolejki z kierunku ${train.origin}. Wybierz mu peron.`);
+  }
+
+  function finishTrain(train){
+    score+=100;
+    passengers=Math.min(100,passengers+1);
+    log(`${trainLabel(train)} odjechał: +100 pkt.`);
+
+    // Po odjeździe semafory tego peronu wracają do czerwonego S1.
+    $$(".signal").forEach(signal=>{
+      if(Number(signal.dataset.platform)===Number(train.assignedPlatform)){
+        signal.dataset.aspect="red";
+      }
+    });
+
+    trains=trains.filter(item=>item.id!==train.id);
+
+    if(selectedId===train.id){
+      selectedId=trains[0]?.id||null;
+      selectedPlatform=currentTrain()?.assignedPlatform??null;
+    }
+
+    promoteNextTrain();
+    say("Odjazd zakończony: +100 pkt. Peron wolny — możesz przyjąć następny pociąg.","good");
+  }
+
+  function tick(){
+    if(paused)return;
+
+    remaining--;
+    gameMinutes+=speed;
+    spawnClock++;
+    updateRadioEvent();
+
+    // Nowe składy czekają w kolejce. Nie dostają automatycznie toru ani sygnału.
+    if(spawnClock>=28){
+      spawnClock=0;
+      const template=schedule[Math.floor(Math.random()*schedule.length)];
+      waitingTemplates.push(template);
+      promoteNextTrain();
+    }
+
+    for(const train of [...trains]){
+      if(train.status==="approaching"){
+        train.move--;
+        if(train.move<=0){
+          train.status="atPlatform";
+          log(`${trainLabel(train)} stoi na peronie ${train.assignedPlatform}.`);
+          if(train.id===selectedId){
+            say("Pociąg stoi na peronie. Wymień pasażerów albo przygotuj odjazd.","good");
+          }
+        }
+      }else if(train.status==="departing"){
+        train.move--;
+        if(train.move<=0)finishTrain(train);
+      }
+    }
+
+    if(remaining<=0){
+      clearInterval(timer);
+      stopAlarm();
+      alert(`Koniec dyżuru!\nWynik: ${score} pkt.`);
+      return;
+    }
+
+    render();
+  }
+
+  function startGame(){
+    clearInterval(timer);
+    stopAlarm();
+
+    trains=[];
+    waitingTemplates=[];
+    score=0;
+    passengers=100;
+    remaining=300;
+    gameMinutes=0;
+    spawnClock=0;
+    selectedId=null;
+    selectedPlatform=null;
+    nextTrainNumber=1;
+    paused=false;
+    radioEventActive=false;
+    radioEventSeconds=0;
+    nextRadioEvent=20+Math.floor(Math.random()*16);
+
+    $("#radioLog").innerHTML="";
+    $("#radioStop").classList.remove("radio-required");
+    $("#radioStop").textContent="RADIO-STOP";
+    $("#pauseButton").textContent="Pauza";
+    $$(".signal").forEach(signal=>signal.dataset.aspect="red");
+
+    $("#gameScreen").classList.remove("hidden");
+    $("#startScreen").classList.add("hidden");
+    applyWeather();
+
+    // Początkowe przyjazdy mają godziny wyliczone z wybranego startu.
+    for(let i=0;i<3;i++){
+      trains.push(newTrain(schedule[i],clockAfterMinutes(i*2)));
+    }
+
+    selectedId=trains[0].id;
+    log(`Dyżur rozpoczęty o ${clockText()}. Kierunek ruchu jest pokazany na schemacie.`);
+    say("Pociąg ze Szczecina jedzie wjazdowym torem 1 po prawej; jego odjazd do Chociwel odbywa się torem 2 po lewej.","good");
+    render();
+
+    timer=setInterval(tick,1000);
+  }
+
+  function returnToMenu(){
+    clearInterval(timer);
+    stopAlarm();
+    $("#gameScreen").classList.add("hidden");
+    $("#startScreen").classList.remove("hidden");
+  }
+
+  /* Wybór pogody */
+  $$(".mode-btn").forEach(button=>button.addEventListener("click",()=>{
+    $$(".mode-btn").forEach(item=>item.classList.remove("selected"));
+    button.classList.add("selected");
+
+    customMode=button.dataset.weather==="custom";
+    $("#customWeather").classList.toggle("hidden",!customMode);
+
+    if(!customMode){
+      chosenWeather=button.dataset.weather;
+      paintWeather($("#startWeather"),chosenWeather);
+    }
+  }));
+
+  $$(".custom-btn").forEach(button=>button.addEventListener("click",()=>{
+    $$(".custom-btn").forEach(item=>item.classList.remove("selected"));
+    button.classList.add("selected");
+    chosenWeather=button.dataset.custom;
+    paintWeather($("#startWeather"),chosenWeather);
+  }));
+
+  /* Godzina rozpoczęcia */
+  $$(".time-btn").forEach(button=>button.addEventListener("click",()=>{
+    $$(".time-btn").forEach(item=>item.classList.remove("selected"));
+    button.classList.add("selected");
+    startTime=button.dataset.start;
+  }));
+
+  $("#startButton").addEventListener("click",()=>{
+    if(customMode&&!$(".custom-btn.selected")){
+      alert("Wybierz pogodę dla trybu niestandardowego.");
+      return;
+    }
+    startGame();
+  });
+
+  /* Ręczny wybór peronu */
+  $$("#platformSelect button").forEach(button=>{
+    button.addEventListener("click",()=>{
+      assignPlatform(Number(button.dataset.platform));
+    });
+  });
+
+  /* Ręczne rozjazdy po właściwej stronie stacji */
+  $$(".turnout").forEach(turnout=>{
+    turnout.addEventListener("click",()=>{
+      assignPlatform(
+        Number(turnout.dataset.platform),
+        turnout.dataset.side
+      );
+    });
+  });
+
+  /* Ręczne semafory */
+  $$(".signal").forEach(signal=>{
+    signal.addEventListener("click",()=>handleSignal(signal));
+  });
+
+  $("#exchangeButton").addEventListener("click",exchangePassengers);
+  $("#dispatchButton").addEventListener("click",dispatchTrain);
+  $("#radioStop").addEventListener("click",useRadioStop);
+
+  /* Prędkość gry */
+  $$(".speed").forEach(button=>button.addEventListener("click",()=>{
+    speed=Number(button.dataset.speed);
+    $$(".speed").forEach(item=>item.classList.toggle("active",item===button));
+  }));
+
+  $("#pauseButton").addEventListener("click",()=>{
+    paused=!paused;
+    $("#pauseButton").textContent=paused?"Wznów":"Pauza";
+    say(paused?"Gra wstrzymana.":"Gra wznowiona.",paused?"":"good");
+  });
+
+  $("#menuButton").addEventListener("click",returnToMenu);
+  $("#radioToggle").addEventListener("click",()=>{
+    $("#radioLog").classList.toggle("hidden");
+  });
+
+  /* Tutorial */
+  $("#tutorialButton").addEventListener("click",()=>{
+    $("#tutorialBackdrop").classList.remove("hidden");
+  });
+  $("#tutorialClose").addEventListener("click",()=>{
+    $("#tutorialBackdrop").classList.add("hidden");
+  });
+  $("#tutorialBackdrop").addEventListener("click",event=>{
+    if(event.target===$("#tutorialBackdrop")){
+      $("#tutorialBackdrop").classList.add("hidden");
+    }
+  });
+  document.addEventListener("keydown",event=>{
+    if(event.key==="Escape")$("#tutorialBackdrop").classList.add("hidden");
+  });
+
+  paintWeather($("#startWeather"),"sun");
+})();
+</script>
+</body>
+</html>
