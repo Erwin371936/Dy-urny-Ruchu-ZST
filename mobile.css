@@ -188,7 +188,8 @@
   }
 
   .radio {
-    top: 42px;
+    top: auto;
+    bottom: 8px;
     left: 7px;
     width: min(185px, 48vw);
   }
