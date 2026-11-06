@@ -187,11 +187,14 @@
     font-size: 9px;
   }
 
+  /* Keep the radio reachable at the bottom of the phone screen. */
   .radio {
-    top: auto;
-    bottom: 8px;
-    left: 7px;
-    width: min(185px, 48vw);
+    position: fixed !important;
+    top: auto !important;
+    bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+    left: 10px !important;
+    width: min(185px, 48vw) !important;
+    z-index: 1000 !important;
   }
 
   .radio-head {
